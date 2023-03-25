@@ -8,7 +8,11 @@ int main()
 
     cout << "Please enter a number" << endl;
     cin >> n;
-    cout << "Your number + 5 is: " << n + 5 << endl;
+
+    for (int i = 0; i <= 5; i++)
+        n += 1;
+
+    cout << "Your number + 5 is: " << n << endl;
 
     return 0;
 }
