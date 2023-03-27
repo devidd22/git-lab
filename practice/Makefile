@@ -1,3 +1,5 @@
+CPPFLAGS=-mrdrnd
+
 all: main
 
 main: main.cc
