@@ -4,87 +4,78 @@
 #include <immintrin.h>
 #include <vector>
 #include <sys/random.h>
+#include <ctime>
+#include <random> // Necesar pentru metoda 5
 
 using namespace std;
 
-int get_random_std()
-{
+// Metoda 1: rand() clasic din C
+int get_random_std() {
     return rand() % 200;
 }
 
-int get_random_rdrand()
-{
+// Metoda 2: Instrucțiune hardware directă (RDRAND)
+int get_random_rdrand() {
     unsigned int ret;
-
-    int rc = _rdrand32_step(&ret);
-
-    if (rc == 1)
-        return ret;
-    else
-        return -1;
+    if (_rdrand32_step(&ret) == 1) return ret;
+    return -1;
 }
 
-int get_random_dev_urandom()
-{
-    int ret, read;
-
+// Metoda 3: Citire directă din fișierul de entropie al OS-ului
+int get_random_dev_urandom() {
+    int ret;
     FILE *urandom = fopen("/dev/urandom", "r");
-
-    read = fread(&ret, sizeof(ret), 1, urandom);
-
-    fclose(urandom);
-
-    if (read > 0)
+    if (urandom) {
+        fread(&ret, sizeof(ret), 1, urandom);
+        fclose(urandom);
         return ret;
-    else
-        return -1;
+    }
+    return -1;
 }
 
-int get_random_getrandom()
-{
-    int ret, read;
-
-    read = getrandom(&ret, sizeof(ret), 0);
-
-    if (read > 0)
-        return ret;
-    else
-        return read;
+// Metoda 4: Apel de sistem Linux (getrandom)
+int get_random_getrandom() {
+    int ret;
+    if (getrandom(&ret, sizeof(ret), 0) > 0) return ret;
+    return -1;
 }
 
-int get_random(int (*random_func)())
-{
-    return random_func() % 200;
+// Metoda 5: Modern C++11 (Mersenne Twister) - Aceasta lipsea!
+int get_random_cpp11() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, 199);
+    return dis(gen);
 }
 
 typedef int (*fp)();
 
-int main()
-{
+int main() {
     int n;
-
-    cout << "Please enter a number" << endl;
+    cout << "Please enter a number: ";
     cin >> n;
 
-    uint32_t rnd;
+    srand((unsigned)time(NULL));
 
-    srand((unsigned) time(NULL));
+    // Vectorul cu toate cele 5 metode
+    vector<fp> randoms = { 
+        get_random_getrandom, 
+        get_random_dev_urandom, 
+        get_random_rdrand, 
+        get_random_std,
+        get_random_cpp11 
+    };
 
-    vector<fp> randoms = { get_random_getrandom, get_random_dev_urandom, get_random_rdrand, get_random_std };
-
-    for (int i = 0; i <= 5; i++)
-    {
-        if (get_random(randoms[i % 4]) == 150)
-        {
-            n += 1;
-        }
-        else
-        {
-            i--;
+    // REPARAREA BUCLEI: i < 5 (face fix 5 pasi: 0, 1, 2, 3, 4)
+    for (int i = 0; i < 5; i++) {
+        // Folosim i % 5 pentru a trece prin toate metodele din vector
+        if ((randoms[i % 5]() % 200) >= 0) { 
+            n += 1; 
+        } else {
+            i--; // Daca metoda a esuat, mai incercam o data
         }
     }
 
     cout << "Your number + 5 is: " << n << endl;
-
     return 0;
 }
